@@ -55,8 +55,15 @@ func main() {
 
 	// Register handlers using app instance with /api prefix
 	mux.HandleFunc("/api/", app.rootHandler) // Health check for /api/
-	mux.HandleFunc("/api/articles", app.articlesRouter)
-	mux.HandleFunc("/api/articles/", app.articleBySlugRouter) // Handles /api/articles/{slug}
+	
+	// Article routes - using new dispatcher functions
+	mux.HandleFunc("/api/articles", app.handleArticles)
+	mux.HandleFunc("/api/articles/", app.handleArticleBySlug)
+
+	// Auth routes
+	mux.HandleFunc("/api/auth/register", app.registerHandler)     // registerHandler is in auth_handlers.go
+	mux.HandleFunc("/api/auth/login", app.loginHandler)           // loginHandler is in auth_handlers.go
+	mux.HandleFunc("/api/auth/refresh", app.refreshTokenHandler) // refreshTokenHandler is in auth_handlers.go
 
 	srv := &http.Server{
 		Addr:    ":8080",
@@ -90,38 +97,43 @@ func main() {
 	log.Println("Server gracefully stopped.")
 }
 
-// articlesRouter routes requests for /api/articles based on HTTP method
-func (a *App) articlesRouter(w http.ResponseWriter, r *http.Request) {
+// handleArticles routes requests for /api/articles based on HTTP method
+// GET is public, POST is protected by authMiddleware.
+func (a *App) handleArticles(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case http.MethodPost:
-		a.createArticleHandler(w, r)
 	case http.MethodGet:
-		a.listArticlesHandler(w, r)
+		a.listArticlesHandler(w, r) // Public
+	case http.MethodPost:
+		// Apply authMiddleware only for POST requests to this path
+		a.authMiddleware(http.HandlerFunc(a.createArticleHandler)).ServeHTTP(w, r)
 	default:
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-// articleBySlugRouter routes requests for /api/articles/{slug} based on HTTP method
-func (a *App) articleBySlugRouter(w http.ResponseWriter, r *http.Request) {
+// handleArticleBySlug routes requests for /api/articles/{slug} based on HTTP method
+// GET is public, PUT and DELETE are protected by authMiddleware.
+func (a *App) handleArticleBySlug(w http.ResponseWriter, r *http.Request) {
 	// Slug extraction from path like /api/articles/{slug}
-	// The +1 is to skip the trailing slash if path is /api/articles/
-	slug := r.URL.Path[len("/api/articles/"):]
+	slug := strings.TrimPrefix(r.URL.Path, "/api/articles/") // More robust slug extraction
 	if slug == "" {
-		// This case might be hit if the path is just "/api/articles/" without a slug.
-		// Depending on desired behavior, could be a 404 or a different handler.
-		// For now, treat as slug not provided.
 		http.Error(w, "Slug not provided", http.StatusBadRequest)
 		return
 	}
 
 	switch r.Method {
 	case http.MethodGet:
-		a.getArticleHandler(w, r, slug)
+		a.getArticleHandler(w, r, slug) // Public
 	case http.MethodPut:
-		a.updateArticleHandler(w, r, slug)
+		protectedUpdateHandler := http.HandlerFunc(func(wr http.ResponseWriter, req *http.Request) {
+			a.updateArticleHandler(wr, req, slug)
+		})
+		a.authMiddleware(protectedUpdateHandler).ServeHTTP(w, r)
 	case http.MethodDelete:
-		a.deleteArticleHandler(w, r, slug)
+		protectedDeleteHandler := http.HandlerFunc(func(wr http.ResponseWriter, req *http.Request) {
+			a.deleteArticleHandler(wr, req, slug)
+		})
+		a.authMiddleware(protectedDeleteHandler).ServeHTTP(w, r)
 	default:
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
@@ -135,6 +147,15 @@ func (a *App) createArticleHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
+	// Retrieve userID from context (set by authMiddleware)
+	userID, ok := getUserIDFromContext(r.Context())
+	if !ok {
+		// This should ideally not happen if middleware is correctly applied
+		http.Error(w, "User ID not found in context", http.StatusInternalServerError)
+		log.Println("Error: User ID not found in context for createArticleHandler")
+		return
+	}
+
 	tx, err := a.DB.Begin(r.Context()) // Use request context for transaction
 	if err != nil {
 		http.Error(w, "Failed to start transaction", http.StatusInternalServerError)
@@ -144,12 +165,13 @@ func (a *App) createArticleHandler(w http.ResponseWriter, r *http.Request) {
 	defer tx.Rollback(r.Context())
 
 	var articleID int64
+	// AuthorID is now taken from the authenticated user's ID from the context
 	err = tx.QueryRow(r.Context(),
 		"INSERT INTO articles (slug, author_id) VALUES ($1, $2) RETURNING id",
-		req.Slug, req.AuthorID).Scan(&articleID)
+		req.Slug, userID).Scan(&articleID)
 	if err != nil {
 		http.Error(w, "Failed to insert article", http.StatusInternalServerError)
-		log.Printf("Error inserting article: %v", err)
+		log.Printf("Error inserting article (slug: %s, author_id: %d): %v", req.Slug, userID, err)
 		return
 	}
 
@@ -312,6 +334,13 @@ func (a *App) updateArticleHandler(w http.ResponseWriter, r *http.Request, slug 
     }
     defer r.Body.Close()
 
+    authUserID, ok := getUserIDFromContext(r.Context())
+    if !ok {
+        http.Error(w, "User ID not found in context", http.StatusInternalServerError)
+        log.Println("Error: User ID not found in context for updateArticleHandler")
+        return
+    }
+
     tx, err := a.DB.Begin(r.Context())
     if err != nil {
         http.Error(w, "Failed to start transaction", http.StatusInternalServerError)
@@ -320,27 +349,35 @@ func (a *App) updateArticleHandler(w http.ResponseWriter, r *http.Request, slug 
     }
     defer tx.Rollback(r.Context())
 
+    // Authorization Check: Fetch current author_id and compare with authUserID
     var articleID int64
-    err = tx.QueryRow(r.Context(), "SELECT id FROM articles WHERE slug = $1", slug).Scan(&articleID)
+    var currentAuthorID sql.NullInt64
+    err = tx.QueryRow(r.Context(), "SELECT id, author_id FROM articles WHERE slug = $1", slug).Scan(&articleID, &currentAuthorID)
     if err != nil {
         if err.Error() == "no rows in result set" { 
             http.Error(w, "Article not found", http.StatusNotFound)
         } else {
             http.Error(w, "Failed to find article", http.StatusInternalServerError)
         }
-        log.Printf("Error finding article by slug %s: %v", slug, err)
+        log.Printf("Error finding article by slug %s for update: %v", slug, err)
+        return
+    }
+
+    if !currentAuthorID.Valid || currentAuthorID.Int64 != authUserID {
+        http.Error(w, "Forbidden: You are not authorized to update this article", http.StatusForbidden)
         return
     }
     
     newSlug := slug
+    // AuthorID is not updated from the request. It's set at creation and protected.
     if req.Slug != "" && req.Slug != slug { // If slug in request is different, update it
         newSlug = req.Slug
-         _, err = tx.Exec(r.Context(), "UPDATE articles SET slug = $1, author_id = $2, updated_at = $3 WHERE id = $4",
-            newSlug, req.AuthorID, time.Now().UTC(), articleID)
-    } else { // Slug is not changing or not provided in request body, only update other fields
-         _, err = tx.Exec(r.Context(), "UPDATE articles SET author_id = $1, updated_at = $2 WHERE id = $3",
-            req.AuthorID, time.Now().UTC(), articleID)
-    }   
+         _, err = tx.Exec(r.Context(), "UPDATE articles SET slug = $1, updated_at = $2 WHERE id = $3",
+            newSlug, time.Now().UTC(), articleID)
+    } else { // Slug is not changing, only update other fields
+         _, err = tx.Exec(r.Context(), "UPDATE articles SET updated_at = $1 WHERE id = $2",
+            time.Now().UTC(), articleID)
+    }
     if err != nil {
         http.Error(w, "Failed to update article details", http.StatusInternalServerError)
         log.Printf("Error updating article details for ID %d: %v", articleID, err)
@@ -391,10 +428,37 @@ func (a *App) updateArticleHandler(w http.ResponseWriter, r *http.Request, slug 
 
 
 func (a *App) deleteArticleHandler(w http.ResponseWriter, r *http.Request, slug string) {
+	authUserID, ok := getUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "User ID not found in context", http.StatusInternalServerError)
+		log.Println("Error: User ID not found in context for deleteArticleHandler")
+		return
+	}
+
+	// Authorization Check: Fetch current author_id and compare with authUserID
+	var currentAuthorID sql.NullInt64
+	err := a.DB.QueryRow(r.Context(), "SELECT author_id FROM articles WHERE slug = $1", slug).Scan(&currentAuthorID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Article not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Database error during delete pre-check", http.StatusInternalServerError)
+			log.Printf("Error fetching article author for delete (slug: %s): %v", slug, err)
+		}
+		return
+	}
+
+	if !currentAuthorID.Valid || currentAuthorID.Int64 != authUserID {
+		http.Error(w, "Forbidden: You are not authorized to delete this article", http.StatusForbidden)
+		return
+	}
+
+	// Proceed with deletion
 	result, err := a.DB.Exec(r.Context(), "DELETE FROM articles WHERE slug = $1", slug)
 	if err != nil {
+		// This error is after the authorization check, so it's a server error if deletion fails.
 		http.Error(w, "Failed to delete article", http.StatusInternalServerError)
-		log.Printf("Error deleting article by slug %s: %v", slug, err)
+		log.Printf("Error deleting article by slug %s (authorization passed): %v", slug, err)
 		return
 	}
 

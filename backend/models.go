@@ -33,9 +33,9 @@ type CreateArticleTranslation struct {
 }
 
 // CreateArticleRequest is the request body for creating a new article
+// AuthorID is removed as it will be derived from the authenticated user's token.
 type CreateArticleRequest struct {
 	Slug         string                     `json:"slug" binding:"required"`
-	AuthorID     *int64                     `json:"author_id,omitempty"`
 	Translations []CreateArticleTranslation `json:"translations" binding:"required,dive"`
 }
 
