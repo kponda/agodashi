@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+    # For Go, live reload typically requires a tool like air or fresh
+    # and a dev-specific Dockerfile or entrypoint. This volume mount
+    # ensures source code is available if such a tool is used.
+
+  frontend:
+    build:
+      context: ./frontend/app
+      # Dockerfile is frontend/app/Dockerfile
+    ports:
+      - "4200:80" # Host 4200 maps to container's Nginx port 80
+    volumes:
+      - ./frontend/app/src:/app/src # More specific mount for Angular source
+    # For Angular, live reload is typically handled by `ng serve`.
+    # This Docker setup serves a production build via Nginx.
+    # The volume mount here is for potential development scenarios if the Dockerfile
+    # was adapted, or to easily access source if needed.
+
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: appdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./infrastructure/db_data:/var/lib/postgresql/data
+      # This ensures that the db_data directory is created in the infrastructure folder.
+      # If it doesn't exist, Docker will create it as a directory.
+      # For the volume to work correctly, the `infrastructure` directory should exist.
+      # I created it in a previous task.
+      # The data will persist across container restarts.
