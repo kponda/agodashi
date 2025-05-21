@@ -8,6 +8,8 @@ services:
       - "8080:8080"
     volumes:
       - ./backend:/app
+    environment:
+      - DATABASE_URL=postgres://user:password@postgres:5432/appdb?sslmode=disable
     # For Go, live reload typically requires a tool like air or fresh
     # and a dev-specific Dockerfile or entrypoint. This volume mount
     # ensures source code is available if such a tool is used.

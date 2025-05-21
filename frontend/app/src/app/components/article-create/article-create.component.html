@@ -1,0 +1,187 @@
+<div class="form-container">
+  <h2>Create New Article</h2>
+
+  <form [formGroup]="articleForm" (ngSubmit)="onSubmit()">
+    <!-- Slug Field -->
+    <div class="form-group">
+      <label for="slug">Slug:</label>
+      <input id="slug" type="text" formControlName="slug" placeholder="e.g., my-first-article">
+      <div *ngIf="slug?.invalid && (slug?.dirty || slug?.touched)" class="validation-errors">
+        <small *ngIf="slug?.errors?.['required']">Slug is required.</small>
+        <small *ngIf="slug?.errors?.['pattern']">Slug must be lowercase alphanumeric with hyphens (e.g., 'my-article').</small>
+      </div>
+    </div>
+
+    <!-- Author ID Field (Optional) -->
+    <div class="form-group">
+      <label for="author_id">Author ID (Optional):</label>
+      <input id="author_id" type="number" formControlName="author_id" placeholder="e.g., 123">
+       <div *ngIf="articleForm.get('author_id')?.invalid && (articleForm.get('author_id')?.dirty || articleForm.get('author_id')?.touched)" class="validation-errors">
+        <small *ngIf="articleForm.get('author_id')?.errors?.['min']">Author ID must be a positive number.</small>
+      </div>
+    </div>
+
+    <hr>
+    <h3>Translations</h3>
+
+    <div formArrayName="translations">
+      <div *ngFor="let translationGroup of translations.controls; let i=index" [formGroupName]="i" class="translation-group">
+        <h4>Translation {{ i + 1 }}</h4>
+        
+        <div class="form-group">
+          <label for="lang-{{i}}">Language Code:</label>
+          <input id="lang-{{i}}" type="text" formControlName="language_code" placeholder="e.g., en, ja">
+          <!-- Add validation messages if needed -->
+        </div>
+
+        <div class="form-group">
+          <label for="title-{{i}}">Title:</label>
+          <input id="title-{{i}}" type="text" formControlName="title" placeholder="Article Title">
+          <!-- Add validation messages if needed -->
+        </div>
+
+        <div class="form-group">
+          <label for="content-{{i}}">Content:</label>
+          <textarea id="content-{{i}}" formControlName="content" rows="5" placeholder="Article content..."></textarea>
+          <!-- Add validation messages if needed -->
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <input id="is_published-{{i}}" type="checkbox" formControlName="is_published">
+          <label for="is_published-{{i}}">Is Published?</label>
+        </div>
+
+        <button type="button" (click)="removeTranslation(i)" class="button remove-button" *ngIf="translations.length > 1">
+          Remove Translation {{ i + 1 }}
+        </button>
+        <hr *ngIf="translations.length > 1 && i < translations.length - 1">
+      </div>
+    </div>
+
+    <button type="button" (click)="addTranslation()" class="button add-translation-button">
+      Add Another Translation
+    </button>
+
+    <hr>
+
+    <div class="form-actions">
+      <button type="submit" [disabled]="articleForm.invalid || isSubmitting" class="button submit-button">
+        {{ isSubmitting ? 'Submitting...' : 'Create Article' }}
+      </button>
+      <a routerLink="/articles" class="button cancel-button">Cancel</a>
+    </div>
+
+    <div *ngIf="error" class="error-message global-error">
+      <p>Error: {{ error }}</p>
+    </div>
+  </form>
+</div>
+
+<style>
+  .form-container {
+    max-width: 700px;
+    margin: 2em auto;
+    padding: 2em;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+  }
+  .form-group {
+    margin-bottom: 1em;
+  }
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5em;
+    font-weight: bold;
+  }
+  .form-group input[type="text"],
+  .form-group input[type="number"],
+  .form-group textarea {
+    width: 100%;
+    padding: 0.8em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+  .form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+  }
+  .checkbox-group {
+    display: flex;
+    align-items: center;
+  }
+  .checkbox-group input[type="checkbox"] {
+    margin-right: 0.5em;
+  }
+  .validation-errors {
+    margin-top: 0.3em;
+  }
+  .validation-errors small {
+    color: red;
+    display: block;
+  }
+  .translation-group {
+    padding: 1em;
+    border: 1px dashed #bbb;
+    border-radius: 4px;
+    margin-bottom: 1em;
+    background-color: #fff;
+  }
+  .translation-group h4 {
+    margin-top: 0;
+    color: #333;
+  }
+  .button {
+    padding: 0.8em 1.2em;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 0.9em;
+    margin-right: 0.5em;
+    text-align: center;
+  }
+  .submit-button {
+    background-color: #28a745;
+    color: white;
+  }
+  .submit-button:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+  }
+  .add-translation-button {
+    background-color: #007bff;
+    color: white;
+    margin-top: 0.5em;
+    margin-bottom: 1em;
+  }
+  .remove-button {
+    background-color: #dc3545;
+    color: white;
+    margin-top: 0.5em;
+  }
+  .cancel-button {
+    background-color: #6c757d;
+    color: white;
+  }
+  .form-actions {
+    margin-top: 1.5em;
+    padding-top: 1em;
+    border-top: 1px solid #eee;
+  }
+  .error-message.global-error {
+    margin-top: 1em;
+    padding: 0.8em;
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 1.5em 0;
+  }
+</style>

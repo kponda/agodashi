@@ -1,0 +1,115 @@
+<div *ngIf="isLoading" class="loading-indicator">
+  <p>Loading article details...</p>
+</div>
+
+<div *ngIf="error" class="error-message">
+  <p>{{ error }}</p>
+  <a routerLink="/articles">Back to Article List</a>
+</div>
+
+<div *ngIf="article && !isLoading && !error" class="article-container">
+  <header class="article-header">
+    <h1>{{ getDisplayTranslation()?.title || 'N/A' }}</h1>
+    <p class="article-slug">Slug: {{ article.slug }}</p>
+    <p class="article-meta">
+      Created: {{ article.created_at | date:'medium' }} |
+      Updated: {{ article.updated_at | date:'medium' }}
+    </p>
+    <p *ngIf="article.author_id" class="article-author">
+      Author ID: {{ article.author_id }}
+    </p>
+  </header>
+
+  <section class="article-content">
+    <div *ngIf="getDisplayTranslation() as translation; else noTranslationContent">
+      <h2>Content ({{ translation.language_code }})</h2>
+      <div [innerHTML]="translation.content"></div> <!-- Or use a safer method if content is Markdown/HTML -->
+      <p *ngIf="translation.is_published">
+        Published on: {{ translation.published_at | date:'mediumDate' }}
+      </p>
+      <p *ngIf="!translation.is_published">
+        This translation is not published yet.
+      </p>
+    </div>
+    <ng-template #noTranslationContent>
+      <p>No content available for the selected language or default.</p>
+    </ng-template>
+  </section>
+
+  <section *ngIf="article.translations && article.translations.length > 1" class="other-translations">
+    <h3>Other Available Translations:</h3>
+    <ul>
+      <li *ngFor="let trans of article.translations">
+        <a [routerLink]="['/articles', article.slug]" [queryParams]="{ lang: trans.language_code }">
+          {{ trans.title }} ({{ trans.language_code }})
+          <span *ngIf="trans.language_code === selectedLanguage"> (Currently Viewing)</span>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  <nav class="article-actions">
+    <a routerLink="/articles" class="button">Back to List</a>
+    <!-- Add Edit/Delete buttons later -->
+    <!-- <a [routerLink]="['/articles', article.slug, 'edit']" class="button">Edit Article</a> -->
+  </nav>
+</div>
+
+<style>
+  .article-container {
+    max-width: 800px;
+    margin: 1em auto;
+    padding: 1em;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #f9f9f9;
+  }
+  .article-header h1 {
+    margin-top: 0;
+  }
+  .article-slug, .article-meta, .article-author {
+    font-size: 0.9em;
+    color: #555;
+  }
+  .article-content {
+    margin-top: 1.5em;
+    padding-top: 1em;
+    border-top: 1px solid #eee;
+  }
+  .other-translations {
+    margin-top: 1.5em;
+    padding-top: 1em;
+    border-top: 1px solid #eee;
+  }
+  .other-translations ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  .other-translations li a {
+    text-decoration: none;
+  }
+  .loading-indicator, .error-message {
+    padding: 1em;
+    text-align: center;
+  }
+  .error-message {
+    color: red;
+  }
+  .article-actions {
+    margin-top: 1.5em;
+    padding-top: 1em;
+    border-top: 1px solid #eee;
+  }
+  .button {
+    display: inline-block;
+    padding: 0.5em 1em;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    margin-right: 0.5em;
+  }
+  .button:hover {
+    background-color: #0056b3;
+  }
+</style>
