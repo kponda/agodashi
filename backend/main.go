@@ -183,31 +183,62 @@ func (a *App) handleArticles(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleArticleBySlug routes requests for /api/articles/{slug} based on HTTP method
-// GET is public, PUT and DELETE are protected by authMiddleware.
+// GET is public, PUT and DELETE (article) are protected by authMiddleware.
+// DELETE /api/articles/{slug}/translations/{lang} is also handled here and protected.
 func (a *App) handleArticleBySlug(w http.ResponseWriter, r *http.Request) {
-	// Slug extraction from path like /api/articles/{slug}
-	slug := strings.TrimPrefix(r.URL.Path, "/api/articles/") // More robust slug extraction
-	if slug == "" {
-		http.Error(w, "Slug not provided", http.StatusBadRequest)
+	pathSuffix := strings.TrimPrefix(r.URL.Path, "/api/articles/")
+	if pathSuffix == "" {
+		http.Error(w, "Article slug or further path not provided", http.StatusBadRequest)
 		return
 	}
 
-	switch r.Method {
-	case http.MethodGet:
-		a.getArticleHandler(w, r, slug) // Public
-	case http.MethodPut:
-		protectedUpdateHandler := http.HandlerFunc(func(wr http.ResponseWriter, req *http.Request) {
-			a.updateArticleHandler(wr, req, slug)
-		})
-		a.authMiddleware(protectedUpdateHandler).ServeHTTP(w, r)
-	case http.MethodDelete:
-		protectedDeleteHandler := http.HandlerFunc(func(wr http.ResponseWriter, req *http.Request) {
-			a.deleteArticleHandler(wr, req, slug)
-		})
-		a.authMiddleware(protectedDeleteHandler).ServeHTTP(w, r)
-	default:
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	parts := strings.SplitN(pathSuffix, "/", 3) // Split into at most 3 parts: slug, "translations", lang
+	articleSlug := parts[0]
+
+	if len(parts) == 1 { // Path is /api/articles/{slug}
+		switch r.Method {
+		case http.MethodGet:
+			a.getArticleHandler(w, r, articleSlug) // Public
+		case http.MethodPut:
+			protectedUpdateHandler := http.HandlerFunc(func(wr http.ResponseWriter, req *http.Request) {
+				a.updateArticleHandler(wr, req, articleSlug)
+			})
+			a.authMiddleware(protectedUpdateHandler).ServeHTTP(w, r)
+		case http.MethodDelete:
+			protectedDeleteHandler := http.HandlerFunc(func(wr http.ResponseWriter, req *http.Request) {
+				a.deleteArticleHandler(wr, req, articleSlug)
+			})
+			a.authMiddleware(protectedDeleteHandler).ServeHTTP(w, r)
+		default:
+			http.Error(w, "Method Not Allowed for /api/articles/{slug}", http.StatusMethodNotAllowed)
+		}
+		return
 	}
+
+	// Path is potentially /api/articles/{slug}/translations/{lang}
+	if len(parts) == 3 && parts[1] == "translations" {
+		langCode := parts[2]
+		if langCode == "" {
+			http.Error(w, "Language code not provided for translation operation", http.StatusBadRequest)
+			return
+		}
+
+		switch r.Method {
+		case http.MethodDelete:
+			// This is the new DELETE /api/articles/{slug}/translations/{lang} endpoint
+			protectedDeleteTranslationHandler := http.HandlerFunc(func(wr http.ResponseWriter, req *http.Request) {
+				a.deleteArticleTranslationHandler(wr, req, articleSlug, langCode)
+			})
+			a.authMiddleware(protectedDeleteTranslationHandler).ServeHTTP(w, r)
+		// Add other methods like GET, PUT for specific translations here if needed in the future
+		default:
+			http.Error(w, "Method Not Allowed for /api/articles/{slug}/translations/{lang}", http.StatusMethodNotAllowed)
+		}
+		return
+	}
+
+	// If path structure is not recognized (e.g., /api/articles/{slug}/somethingelse)
+	http.Error(w, "Not Found", http.StatusNotFound)
 }
 
 func (a *App) createArticleHandler(w http.ResponseWriter, r *http.Request) {
@@ -495,6 +526,101 @@ func (a *App) updateArticleHandler(w http.ResponseWriter, r *http.Request, slug 
 
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(articleResponse)
+}
+
+
+func (a *App) deleteArticleTranslationHandler(w http.ResponseWriter, r *http.Request, articleSlug string, langCode string) {
+	authUserID, ok := getUserIDFromContext(r.Context())
+	if !ok {
+		http.Error(w, "User ID not found in context", http.StatusInternalServerError)
+		log.Println("Error: User ID not found in context for deleteArticleTranslationHandler")
+		return
+	}
+
+	// Start a transaction
+	tx, err := a.DB.Begin(r.Context())
+	if err != nil {
+		http.Error(w, "Failed to start transaction", http.StatusInternalServerError)
+		log.Printf("Error starting transaction for delete translation: %v", err)
+		return
+	}
+	defer tx.Rollback(r.Context())
+
+	// 1. Fetch article ID and author ID by slug
+	var articleID int64
+	var authorID sql.NullInt64 // author_id can be NULL
+	err = tx.QueryRow(r.Context(), "SELECT id, author_id FROM articles WHERE slug = $1", articleSlug).Scan(&articleID, &authorID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Article not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Database error fetching article", http.StatusInternalServerError)
+			log.Printf("Error fetching article by slug %s: %v", articleSlug, err)
+		}
+		return
+	}
+
+	// 2. Authorization: Check if the authenticated user is the author
+	if !authorID.Valid || authorID.Int64 != authUserID {
+		http.Error(w, "Forbidden: You are not authorized to modify this article's translations", http.StatusForbidden)
+		return
+	}
+
+	// 3. Check if the translation to be deleted is the only one for the article
+	var translationCount int
+	err = tx.QueryRow(r.Context(), "SELECT COUNT(*) FROM article_translations WHERE article_id = $1", articleID).Scan(&translationCount)
+	if err != nil {
+		http.Error(w, "Database error counting translations", http.StatusInternalServerError)
+		log.Printf("Error counting translations for article ID %d: %v", articleID, err)
+		return
+	}
+
+	if translationCount <= 1 {
+		// Check if the specific translation actually exists before denying deletion of the "last one"
+		var specificTranslationExists int
+		err = tx.QueryRow(r.Context(), "SELECT COUNT(*) FROM article_translations WHERE article_id = $1 AND language_code = $2", articleID, langCode).Scan(&specificTranslationExists)
+		if err != nil {
+			http.Error(w, "Database error checking specific translation existence", http.StatusInternalServerError)
+			log.Printf("Error checking specific translation (article ID %d, lang %s): %v", articleID, langCode, err)
+			return
+		}
+		if specificTranslationExists > 0 && translationCount <= 1 {
+			http.Error(w, "Cannot delete the last translation of an article. Consider deleting the entire article or adding another translation first.", http.StatusBadRequest)
+			return
+		}
+	}
+	
+	// 4. Delete the specific translation
+	result, err := tx.Exec(r.Context(), "DELETE FROM article_translations WHERE article_id = $1 AND language_code = $2", articleID, langCode)
+	if err != nil {
+		http.Error(w, "Failed to delete article translation", http.StatusInternalServerError)
+		log.Printf("Error deleting translation (article ID %d, lang %s): %v", articleID, langCode, err)
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		// This error is less common for DELETE but good to check
+		http.Error(w, "Error checking affected rows after delete", http.StatusInternalServerError)
+		log.Printf("Error checking affected rows for translation (article ID %d, lang %s): %v", articleID, langCode, err)
+		return
+	}
+	if rowsAffected == 0 {
+		// This means the translation for the given langCode didn't exist for this article.
+		// This can be treated as a 404 or a success (idempotent delete).
+		// For DELETE, idempotency is often preferred, so 204 is fine.
+		// If strict "must exist to be deleted" is required, then return 404.
+		// Let's assume 204 is okay even if it didn't exist.
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(r.Context()); err != nil {
+		http.Error(w, "Failed to commit transaction", http.StatusInternalServerError)
+		log.Printf("Error committing transaction for delete translation: %v", err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 
