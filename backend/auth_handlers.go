@@ -22,10 +22,11 @@ type RegisterRequest struct {
 
 // UserResponse defines the structure for returning basic user info.
 type UserResponse struct {
-	ID        int64     `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
+	ID                  int64     `json:"id"`
+	Username            string    `json:"username"`
+	Email               string    `json:"email,omitempty"`
+	DefaultLanguageCode string    `json:"default_language_code"` // Added new field
+	CreatedAt           time.Time `json:"created_at"`
 }
 
 // LoginRequest defines the structure for user login.
@@ -124,9 +125,11 @@ func (a *App) registerHandler(w http.ResponseWriter, r *http.Request) {
 		userEmail = sql.NullString{String: req.Email, Valid: true}
 	}
 
-	insertQuery := "INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, created_at"
+	// The default_language_code will be set by the DB default ('en')
+	insertQuery := "INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, created_at, default_language_code"
 	var createdAt time.Time
-	err = a.DB.QueryRow(context.Background(), insertQuery, req.Username, userEmail, string(hashedPassword)).Scan(&userID, &createdAt)
+	var defaultLangCode string
+	err = a.DB.QueryRow(context.Background(), insertQuery, req.Username, userEmail, string(hashedPassword)).Scan(&userID, &createdAt, &defaultLangCode)
 	if err != nil {
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		log.Printf("Error creating user: %v", err)
@@ -135,10 +138,11 @@ func (a *App) registerHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Return UserResponse
 	userResponse := UserResponse{
-		ID:        userID,
-		Username:  req.Username,
-		Email:     req.Email, // Return the email if provided, even if it's empty string from request
-		CreatedAt: createdAt,
+		ID:                  userID,
+		Username:            req.Username,
+		Email:               req.Email, // Return the email if provided, even if it's empty string from request
+		DefaultLanguageCode: defaultLangCode,
+		CreatedAt:           createdAt,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -174,9 +178,10 @@ func (a *App) loginHandler(w http.ResponseWriter, r *http.Request) {
 	var storedPasswordHash string
 	var userEmail sql.NullString // To fetch email
 	var createdAt time.Time      // To fetch created_at
+	var defaultLangCode string   // To fetch default_language_code
 
-	queryUser := "SELECT id, password_hash, email, created_at FROM users WHERE username = $1"
-	err := a.DB.QueryRow(context.Background(), queryUser, req.Username).Scan(&userID, &storedPasswordHash, &userEmail, &createdAt)
+	queryUser := "SELECT id, password_hash, email, created_at, default_language_code FROM users WHERE username = $1"
+	err := a.DB.QueryRow(context.Background(), queryUser, req.Username).Scan(&userID, &storedPasswordHash, &userEmail, &createdAt, &defaultLangCode)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.Error(w, "Invalid username or password", http.StatusUnauthorized)
@@ -241,9 +246,10 @@ func (a *App) loginHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Prepare UserResponse
 	responseUser := UserResponse{
-		ID:        userID,
-		Username:  req.Username,
-		CreatedAt: createdAt,
+		ID:                  userID,
+		Username:            req.Username,
+		DefaultLanguageCode: defaultLangCode,
+		CreatedAt:           createdAt,
 	}
 	if userEmail.Valid {
 		responseUser.Email = userEmail.String

@@ -12,6 +12,9 @@ services:
       - DATABASE_URL=postgres://user:password@postgres:5432/appdb?sslmode=disable
       - JWT_ACCESS_SECRET=your_super_secure_jwt_access_secret_key_min_32_bytes
       - JWT_REFRESH_SECRET=your_super_secure_jwt_refresh_secret_key_min_32_bytes
+      - GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE" # User needs to replace this
+      - FILESTORAGE_BASE_PATH=/app/uploads # Path inside the container
+      - FILESTORAGE_BASE_URL=/uploads      # URL path for serving files
     # For Go, live reload typically requires a tool like air or fresh
     # and a dev-specific Dockerfile or entrypoint. This volume mount
     # ensures source code is available if such a tool is used.

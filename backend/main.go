@@ -16,9 +16,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// App holds application-wide dependencies, like the database pool.
+// App holds application-wide dependencies, like the database pool, config, translation service, and file storage service.
 type App struct {
-	DB *pgxpool.Pool
+	DB                 *pgxpool.Pool
+	Config             AppConfig
+	TranslationService *GeminiTranslationService
+	FileStorage        filestorage.FileStorageService // Added FileStorageService
 }
 
 // rootHandler is a simple handler to check if the server is running under /api.
@@ -49,7 +52,49 @@ func main() {
 	defer dbpool.Close() // Ensure pool is closed on application exit
 	log.Println("Successfully connected to the database.")
 
-	app := &App{DB: dbpool}
+	// Load application configuration
+	appConfig := LoadConfig() // LoadConfig is defined in config.go
+	// DATABASE_URL is already checked above and will be used for connectDB
+	// JWT secrets are loaded in auth.go init()
+	// Gemini API Key is loaded by LoadConfig() and logged if missing.
+
+	app := &App{
+		DB:     dbpool,
+		Config: appConfig,
+		// TranslationService will be initialized next
+	}
+
+	// Initialize Gemini Translation Service
+	if appConfig.GeminiAPIKey != "" {
+		translationSvc, err := NewGeminiTranslationService(appConfig.GeminiAPIKey)
+		if err != nil {
+			// Log the error but don't necessarily make it fatal,
+			// as the app might still function for non-translation tasks.
+			log.Printf("Warning: Failed to initialize GeminiTranslationService: %v", err)
+			// app.TranslationService will remain nil
+		} else {
+			log.Println("GeminiTranslationService initialized successfully.")
+			app.TranslationService = translationSvc
+			// defer translationSvc.Close() // If a Close method is implemented and needed
+		}
+	} else {
+		log.Println("Warning: GeminiAPIKey not set. GeminiTranslationService will not be available.")
+	}
+
+	// Initialize File Storage Service
+	if appConfig.FileStorageBasePath != "" && appConfig.FileStorageBaseURL != "" {
+		fileStorageSvc, err := filestorage.NewLocalFileStorage(appConfig.FileStorageBasePath, appConfig.FileStorageBaseURL)
+		if err != nil {
+			// Depending on requirements, this could be a fatal error.
+			// For now, log as warning, service will be nil.
+			log.Printf("Warning: Failed to initialize LocalFileStorage: %v", err)
+		} else {
+			log.Println("LocalFileStorage initialized successfully.")
+			app.FileStorage = fileStorageSvc
+		}
+	} else {
+		log.Println("Warning: FileStorageBasePath or FileStorageBaseURL not set. LocalFileStorage will not be available.")
+	}
 
 	mux := http.NewServeMux()
 
@@ -64,6 +109,32 @@ func main() {
 	mux.HandleFunc("/api/auth/register", app.registerHandler)     // registerHandler is in auth_handlers.go
 	mux.HandleFunc("/api/auth/login", app.loginHandler)           // loginHandler is in auth_handlers.go
 	mux.HandleFunc("/api/auth/refresh", app.refreshTokenHandler) // refreshTokenHandler is in auth_handlers.go
+
+	// Image Upload Route (Protected)
+	// Note: Using Handle for routes with middleware that isn't a simple HandleFunc
+	mux.Handle("/api/images/upload", app.authMiddleware(http.HandlerFunc(app.uploadImageHandler)))
+
+	// Static File Server for Uploaded Images
+	// Ensure BaseURL has a leading slash and no trailing slash for StripPrefix consistency
+	// cfg.FileStorageBaseURL is like "/uploads"
+	// cfg.FileStorageBasePath is like "/app/uploads" (inside Docker) or "./uploads" (local dev)
+	if app.Config.FileStorageBaseURL != "" && app.Config.FileStorageBasePath != "" {
+		urlPath := strings.TrimSuffix(app.Config.FileStorageBaseURL, "/")
+		if !strings.HasPrefix(urlPath, "/") {
+			urlPath = "/" + urlPath
+		}
+		
+		// The path for mux.Handle needs a trailing slash to correctly match directory prefixes
+		servePath := urlPath + "/" 
+		
+		fs := http.FileServer(http.Dir(app.Config.FileStorageBasePath))
+		mux.Handle(servePath, http.StripPrefix(urlPath, fs)) // Use urlPath for StripPrefix (without trailing slash)
+		
+		log.Printf("Serving static files from %s at %s", app.Config.FileStorageBasePath, servePath)
+	} else {
+		log.Println("Warning: FileStorageBaseURL or FileStorageBasePath not configured. Static file server for uploads is disabled.")
+	}
+
 
 	srv := &http.Server{
 		Addr:    ":8080",
