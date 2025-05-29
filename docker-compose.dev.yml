@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  backend:
+    extends:
+      file: docker-compose.yml
+      service: backend
+    volumes:
+      - ./backend:/app
+    command: sh -c "go install github.com/cosmtrek/air@latest && air"
+
+  frontend:
+    extends:
+      file: docker-compose.yml
+      service: frontend
+    ports:
+      - "4201:4200"
+    volumes:
+      - ./frontend/app:/app
+    command: sh -c "npm install && npm start"
