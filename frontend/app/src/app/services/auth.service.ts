@@ -14,12 +14,12 @@ export interface UserResponse {
 export interface RegisterRequest {
   username: string;
   email?: string;
-  password string; // Plain password
+  password: string; // Plain password
 }
 
 export interface LoginRequest {
   username: string;
-  password string; // Plain password
+  password: string; // Plain password
 }
 
 export interface LoginResponse {
@@ -85,7 +85,7 @@ export class AuthService {
     localStorage.removeItem(this.accessTokenKey);
     this.isAuthenticatedSubject.next(false);
     this.currentUserSubject.next(null);
-    this.router.navigate(['/auth/login']); // Navigate to login page
+    this.router.navigate(['/articles']); // Navigate to articles page (login route not implemented yet)
   }
 
   // Used internally on login error to prevent inconsistent state

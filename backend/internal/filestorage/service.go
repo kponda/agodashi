@@ -1,7 +1,6 @@
 package filestorage
 
 import (
-	"io"
 	"mime/multipart"
 )
 

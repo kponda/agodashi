@@ -10,10 +10,12 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"agodashi/internal/filestorage"
 )
 
 // App holds application-wide dependencies, like the database pool, config, translation service, and file storage service.
@@ -138,7 +140,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:    ":8080",
-		Handler: mux,
+		Handler: corsMiddleware(mux),
 		// Basic timeouts
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
@@ -551,7 +553,7 @@ func (a *App) deleteArticleTranslationHandler(w http.ResponseWriter, r *http.Req
 	var authorID sql.NullInt64 // author_id can be NULL
 	err = tx.QueryRow(r.Context(), "SELECT id, author_id FROM articles WHERE slug = $1", articleSlug).Scan(&articleID, &authorID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err.Error() == "no rows in result set" { // pgx returns "no rows in result set" instead of sql.ErrNoRows
 			http.Error(w, "Article not found", http.StatusNotFound)
 		} else {
 			http.Error(w, "Database error fetching article", http.StatusInternalServerError)
@@ -598,13 +600,7 @@ func (a *App) deleteArticleTranslationHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		// This error is less common for DELETE but good to check
-		http.Error(w, "Error checking affected rows after delete", http.StatusInternalServerError)
-		log.Printf("Error checking affected rows for translation (article ID %d, lang %s): %v", articleID, langCode, err)
-		return
-	}
+	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
 		// This means the translation for the given langCode didn't exist for this article.
 		// This can be treated as a 404 or a success (idempotent delete).
@@ -636,7 +632,7 @@ func (a *App) deleteArticleHandler(w http.ResponseWriter, r *http.Request, slug 
 	var currentAuthorID sql.NullInt64
 	err := a.DB.QueryRow(r.Context(), "SELECT author_id FROM articles WHERE slug = $1", slug).Scan(&currentAuthorID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err.Error() == "no rows in result set" { // pgx returns "no rows in result set" instead of sql.ErrNoRows
 			http.Error(w, "Article not found", http.StatusNotFound)
 		} else {
 			http.Error(w, "Database error during delete pre-check", http.StatusInternalServerError)
@@ -659,7 +655,8 @@ func (a *App) deleteArticleHandler(w http.ResponseWriter, r *http.Request, slug 
 		return
 	}
 
-	if result.RowsAffected() == 0 {
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
 		http.Error(w, "Article not found", http.StatusNotFound)
 		return
 	}

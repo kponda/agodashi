@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -100,7 +99,7 @@ func (a *App) registerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := a.DB.QueryRow(context.Background(), checkQuery, args...).Scan(&existingUserID)
-	if err != nil && err != sql.ErrNoRows { // sql.ErrNoRows means user/email not found, which is good
+	if err != nil && err.Error() != "no rows in result set" { // pgx returns "no rows in result set" instead of sql.ErrNoRows
 		http.Error(w, "Database error while checking existing user", http.StatusInternalServerError)
 		log.Printf("Error checking existing user: %v", err)
 		return
@@ -183,7 +182,7 @@ func (a *App) loginHandler(w http.ResponseWriter, r *http.Request) {
 	queryUser := "SELECT id, password_hash, email, created_at, default_language_code FROM users WHERE username = $1"
 	err := a.DB.QueryRow(context.Background(), queryUser, req.Username).Scan(&userID, &storedPasswordHash, &userEmail, &createdAt, &defaultLangCode)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err.Error() == "no rows in result set" { // pgx returns "no rows in result set" instead of sql.ErrNoRows
 			http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 		} else {
 			http.Error(w, "Database error", http.StatusInternalServerError)
@@ -302,7 +301,7 @@ func (a *App) refreshTokenHandler(w http.ResponseWriter, r *http.Request) {
 	query := "SELECT user_id, token_hash, expires_at FROM refresh_tokens WHERE token_hash = $1"
 	err = a.DB.QueryRow(context.Background(), query, hashedTokenFromCookie).Scan(&storedUserID, &storedTokenHash, &storedExpiresAt)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err.Error() == "no rows in result set" { // pgx returns "no rows in result set" instead of sql.ErrNoRows
 			// Token not found in DB (potentially already used/revoked, or invalid)
 			http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
 		} else {
