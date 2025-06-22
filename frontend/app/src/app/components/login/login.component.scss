@@ -1,105 +1,105 @@
-.login-container {
-  max-width: 400px;
-  margin: 2em auto;
-  padding: 2em;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  background-color: #f9f9f9;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 160px); // Adjust based on header/footer height if they are fixed
+  padding: 2rem 0; // Padding for the page itself
 
-h2 {
-  text-align: center;
-  margin-bottom: 1.5em;
-  color: #333;
-}
+  .login-container {
+    // Uses global .card styles for background, shadow, padding
+    max-width: 450px; // Max width for the login form
+    width: 100%; // Responsive width
+    // Global .card provides padding, adjust if needed:
+    // padding: 2rem;
 
-.form-group {
-  margin-bottom: 1.5em;
-}
+    .form-header {
+      text-align: center;
+      margin-bottom: 2rem; // Increased space
+      h2 {
+        font-size: 2rem; // Larger heading
+        color: var(--text-color);
+        margin: 0;
+      }
+    }
 
-.form-group label {
-  display: block;
-  margin-bottom: 0.5em;
-  font-weight: bold;
-  color: #555;
-}
+    .login-form {
+      .form-group {
+        margin-bottom: 1.5rem;
 
-.form-group input[type="text"],
-.form-group input[type="password"] {
-  width: 100%;
-  padding: 0.8em;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  box-sizing: border-box;
-  transition: border-color 0.3s ease;
-}
+        label {
+          display: block;
+          margin-bottom: 0.5rem;
+          font-weight: 600;
+          color: var(--text-color);
+          font-size: 0.9rem;
+        }
 
-.form-group input[type="text"]:focus,
-.form-group input[type="password"]:focus {
-  border-color: #007bff;
-  outline: none;
-}
+        input[type="text"],
+        input[type="password"] {
+          // Uses global input styles from styles.scss
+          // Add specific overrides if needed:
+          // e.g., padding: 12px 15px;
+        }
 
-.form-group input.is-invalid {
-  border-color: #dc3545;
-}
+        input.is-invalid {
+          border-color: #e74c3c; // Error color for invalid fields
+          // Potentially add a subtle box-shadow or background for invalid state
+          &:focus {
+            border-color: #e74c3c; // Keep border color on focus if invalid
+            box-shadow: 0 0 0 0.2rem rgba(231, 76, 60, 0.25); // Error focus ring
+          }
+        }
 
-.validation-errors {
-  margin-top: 0.4em;
-}
+        .validation-errors {
+          margin-top: 0.5rem;
+          small {
+            color: #e74c3c;
+            font-size: 0.85em;
+          }
+        }
+      }
 
-.validation-errors small {
-  color: #dc3545;
-  font-size: 0.85em;
-}
+      .alert.error-message.global-error {
+        margin-bottom: 1.5rem;
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        border-radius: var(--border-radius, 4px);
+        padding: 1rem;
+        text-align: center;
+        p { margin: 0; }
+      }
 
-.error-message.global-error {
-  margin-bottom: 1em;
-  padding: 0.8em;
-  color: #721c24;
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
-  border-radius: 4px;
-  text-align: center;
-}
+      .form-actions {
+        margin-top: 2rem;
+        text-align: center;
 
-.form-actions {
-  margin-top: 1.5em;
-  text-align: center;
-}
+        .button.submit-button {
+          // Uses global .button and .primary-button styles
+          width: 100%; // Make login button full width
+          padding: 12px 20px; // Larger padding for primary action
+          font-size: 1.1rem; // Slightly larger font
+        }
+      }
+    }
 
-.button.submit-button {
-  padding: 0.8em 1.5em;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1em;
-  transition: background-color 0.3s ease;
-}
+    .register-link {
+      text-align: center;
+      margin-top: 2rem; // Increased space
+      font-size: 0.95rem; // Slightly larger
+      color: var(--text-color);
 
-.button.submit-button:disabled {
-  background-color: #aaa;
-  cursor: not-allowed;
-}
+      a {
+        color: var(--primary-color);
+        font-weight: 600; // Make link stand out
+        text-decoration: none;
+        transition: color 0.2s ease;
 
-.button.submit-button:not(:disabled):hover {
-  background-color: #0056b3;
-}
-
-.register-link {
-  text-align: center;
-  margin-top: 1.5em;
-  font-size: 0.9em;
-}
-
-.register-link a {
-  color: #007bff;
-  text-decoration: none;
-}
-
-.register-link a:hover {
-  text-decoration: underline;
+        &:hover {
+          color: var(--hover-primary-color);
+          text-decoration: underline;
+        }
+      }
+    }
+  }
 }

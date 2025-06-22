@@ -1,63 +1,28 @@
 <header class="app-header">
   <nav class="app-nav">
-    <a routerLink="/articles" class="nav-link">Articles</a>
-    <a routerLink="/articles/new" class="nav-link">Create Article</a>
+    <a routerLink="/" class="nav-logo">MyBlog</a>
+    <a routerLink="/articles" class="nav-link" routerLinkActive="active">Articles</a>
+    <a routerLink="/articles/new" class="nav-link" routerLinkActive="active">Create Article</a>
+    <!-- Add other navigation links here -->
+    <div class="auth-links">
+      <!-- Example: Conditionally show login/logout or user profile link -->
+      <!-- For actual implementation, you'd use a service to check auth state -->
+      <a routerLink="/auth/login" class="button">Login</a>
+      <!-- <a (click)="logout()" class="button">Logout</a> -->
+    </div>
   </nav>
 </header>
 
 <main class="app-main-content">
-  <router-outlet></router-outlet>
+  <!-- Wrap router-outlet in a container to apply consistent padding/max-width -->
+  <div class="container">
+    <router-outlet></router-outlet>
+  </div>
 </main>
 
 <footer class="app-footer">
-  <p>&copy; 2024 Blog/CMS System</p>
+  <p>&copy; {{ currentYear }} Modern Blog Platform. All rights reserved.</p>
 </footer>
 
-<style>
-  :host {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    font-family: Arial, sans-serif;
-  }
-
-  .app-header {
-    background-color: #333;
-    color: white;
-    padding: 1em;
-    text-align: center;
-  }
-
-  .app-nav {
-    display: flex;
-    justify-content: center;
-    gap: 1em;
-  }
-
-  .nav-link {
-    color: white;
-    text-decoration: none;
-    font-size: 1.1em;
-  }
-
-  .nav-link:hover, .nav-link.active { /* .active class is often added by Angular for active routes */
-    text-decoration: underline;
-    font-weight: bold;
-  }
-
-  .app-main-content {
-    flex-grow: 1;
-    padding: 1em;
-    max-width: 1200px; /* Limit content width */
-    margin: 0 auto; /* Center content */
-    width: 100%;
-  }
-
-  .app-footer {
-    background-color: #f0f0f0;
-    color: #333;
-    text-align: center;
-    padding: 1em;
-    border-top: 1px solid #ddd;
-  }
-</style>
+<!-- Example of a global loading spinner, control its visibility via a service -->
+<!-- <div *ngIf="isLoading" class="global-spinner"></div> -->

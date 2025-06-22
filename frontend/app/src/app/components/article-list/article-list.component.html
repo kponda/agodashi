@@ -1,69 +1,40 @@
-<h2>Articles</h2>
+<div class="article-list-page">
+  <header class="page-header">
+    <h1>Articles</h1>
+    <a routerLink="/articles/new" class="button primary-button">Create New Article</a>
+  </header>
 
-<div *ngIf="isLoading" class="loading-indicator">
-  <p>Loading articles...</p>
-  <!-- You can add a spinner or other loading animation here -->
-</div>
-
-<div *ngIf="error" class="error-message">
-  <p>{{ error }}</p>
-</div>
-
-<div *ngIf="!isLoading && !error">
-  <div *ngIf="articles.length > 0; else noArticles">
-    <ul>
-      <li *ngFor="let article of articles">
-        <a [routerLink]="['/articles', article.slug]">
-          {{ getDisplayTitle(article) }} ({{ article.slug }})
-        </a>
-      </li>
-    </ul>
+  <div *ngIf="isLoading" class="loading-indicator">
+    <p>Loading articles...</p>
+    <!-- Consider adding a more visually appealing spinner here -->
   </div>
-  <ng-template #noArticles>
-    <p>No articles found.</p>
-  </ng-template>
 
-  <div class="actions">
-    <a routerLink="/articles/new" class="button create-button">Create New Article</a>
+  <div *ngIf="error" class="alert error-message">
+    <p><strong>Error:</strong> {{ error }}</p>
+  </div>
+
+  <div *ngIf="!isLoading && !error" class="article-grid">
+    <div *ngIf="articles.length > 0; else noArticles" class="articles-container">
+      <div *ngFor="let article of articles" class="card article-card">
+        <h2 class="article-title">
+          <a [routerLink]="['/articles', article.slug]">
+            {{ getDisplayTitle(article) }}
+          </a>
+        </h2>
+        <p class="article-slug">Slug: {{ article.slug }}</p>
+        <!-- <p class="article-excerpt">A short description or excerpt of the article...</p> -->
+        <div class="article-meta">
+          <span>Created: {{ article.created_at | date:'mediumDate' }}</span>
+          <!-- Add more meta info if available, e.g., author -->
+        </div>
+        <a [routerLink]="['/articles', article.slug]" class="button read-more-button">Read More</a>
+      </div>
+    </div>
+    <ng-template #noArticles>
+      <div class="empty-state">
+        <p>No articles found. Why not create one?</p>
+        <a routerLink="/articles/new" class="button primary-button">Create First Article</a>
+      </div>
+    </ng-template>
   </div>
 </div>
-
-<style>
-  .loading-indicator, .error-message {
-    padding: 1em;
-    text-align: center;
-  }
-  .error-message {
-    color: red;
-    border: 1px solid red;
-    background-color: #ffe0e0;
-  }
-  ul {
-    list-style-type: none;
-    padding: 0;
-  }
-  li {
-    padding: 0.5em 0;
-    border-bottom: 1px solid #eee;
-  }
-  li a {
-    text-decoration: none;
-    color: #337ab7;
-  }
-  li a:hover {
-    text-decoration: underline;
-  }
-  .actions {
-    margin-top: 1.5em;
-  }
-  .button.create-button {
-    padding: 0.8em 1.2em;
-    background-color: #5cb85c;
-    color: white;
-    text-decoration: none;
-    border-radius: 4px;
-  }
-  .button.create-button:hover {
-    background-color: #4cae4c;
-  }
-</style>

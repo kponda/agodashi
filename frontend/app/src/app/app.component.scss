@@ -1,0 +1,123 @@
+// Apply global styles by importing, or define component-specific styles here.
+// For this example, we'll assume most global styles from styles.scss will apply.
+// We can add specific overrides or enhancements for the app component shell.
+
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-header {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 1rem 0; // Adjusted padding
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); // Subtle shadow for depth
+  z-index: 1000; // Ensure header is above other content
+
+  .app-nav {
+    display: flex;
+    justify-content: center; // Center navigation items
+    align-items: center;
+    max-width: 1200px; // Match container width
+    margin: 0 auto; // Center nav within header
+    padding: 0 20px; // Padding for nav content
+
+    .nav-logo {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-right: auto; // Push other nav links to the right
+        color: white;
+        text-decoration: none;
+    }
+
+    .nav-link {
+      color: white;
+      text-decoration: none;
+      font-size: 1rem; // Adjusted font size
+      padding: 0.5rem 1rem; // Padding for clickable area
+      border-radius: 4px; // Rounded corners for links
+      transition: background-color 0.3s ease, color 0.3s ease;
+
+      &:hover,
+      &.active { // .active class is often added by Angular for active routes
+        background-color: var(--hover-primary-color); // Darker shade on hover/active
+        text-decoration: none; // Remove underline, rely on background
+      }
+    }
+
+    .auth-links {
+        margin-left: auto; // Push auth links to the far right
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        .button, a.button { // Style auth buttons/links
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+
+            &:hover {
+                background-color: var(--hover-secondary-color);
+            }
+        }
+    }
+  }
+}
+
+.app-main-content {
+  flex-grow: 1;
+  // padding: 20px; // Padding is handled by .container now
+  width: 100%;
+  display: flex; // Added for centering content better
+  flex-direction: column; // Stack children vertically
+  align-items: center; // Center children horizontally
+
+  // Apply .container styles to direct children of main that need it
+  // or wrap router-outlet in a div with class="container" in app.component.html
+  & > .container { // If router-outlet is wrapped
+    width: 100%; // Take full width of parent
+    padding-top: 2rem; // Add some space from the header
+    padding-bottom: 2rem; // Space before footer
+  }
+}
+
+.app-footer {
+  background-color: #34495e; // Darker footer
+  color: #ecf0f1; // Light text for footer
+  text-align: center;
+  padding: 1.5rem 0; // Adjusted padding
+  // border-top: 1px solid var(--border-color); // Use a variable or specific color if needed
+  font-size: 0.9rem;
+
+  p {
+    margin: 0;
+  }
+}
+
+// Global loading spinner style (example)
+.global-spinner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  // Add your spinner animation styles here
+  // e.g., using CSS animations for a rotating circle
+}
+
+// Page transition animations (basic example)
+// Needs to be used with Angular animations for router-outlet
+// :host ::ng-deep router-outlet + * { // This is a general way, might need specific setup
+//   display: block;
+//   animation: fadeIn 0.5s ease-in-out;
+// }
+
+// @keyframes fadeIn {
+//   from { opacity: 0; transform: translateY(20px); }
+//   to { opacity: 1; transform: translateY(0); }
+// }

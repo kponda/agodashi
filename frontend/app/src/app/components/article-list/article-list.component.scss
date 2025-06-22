@@ -1,0 +1,131 @@
+.article-list-page {
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+
+    h1 {
+      margin: 0;
+      color: var(--text-color);
+    }
+  }
+
+  .loading-indicator,
+  .error-message,
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    margin-top: 2rem;
+  }
+
+  .alert.error-message { // Using .alert for consistency if you have global alert styles
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    border-radius: var(--border-radius, 4px); // Use global var or default
+    padding: 1rem;
+  }
+
+  .articles-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); // Responsive grid
+    gap: 1.5rem; // Space between cards
+  }
+
+  .article-card {
+    // Uses global .card styles from styles.scss
+    // Add specific overrides or extensions for article cards here if needed
+    display: flex;
+    flex-direction: column; // Arrange content vertically
+
+    .article-title {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+      font-size: 1.5rem; // Larger title for cards
+
+      a {
+        text-decoration: none;
+        color: var(--primary-color);
+        transition: color 0.2s ease;
+
+        &:hover {
+          color: var(--hover-primary-color);
+          text-decoration: underline;
+        }
+      }
+    }
+
+    .article-slug {
+      font-size: 0.85rem;
+      color: #777;
+      margin-bottom: 1rem;
+    }
+
+    .article-excerpt {
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+      flex-grow: 1; // Allows excerpt to take available space if cards have different heights
+    }
+
+    .article-meta {
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 1rem; // Space before the read more button
+    }
+
+    .read-more-button {
+      // Uses global .button styles
+      // Specific styling for read more if needed:
+      background-color: transparent;
+      color: var(--primary-color);
+      border: 1px solid var(--primary-color);
+      padding: 8px 16px;
+      align-self: flex-start; // Align button to the left
+      margin-top: auto; // Push button to the bottom of the card
+
+      &:hover {
+        background-color: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+      }
+    }
+  }
+
+  .empty-state {
+    background-color: var(--card-background-color);
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+
+    p {
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+    }
+  }
+}
+
+// Re-use button styles from global styles.scss or define component-specific ones
+// .button.primary-button is assumed to be defined globally or can be added here:
+// .button.primary-button {
+//   background-color: var(--primary-color);
+//   color: white;
+//   &:hover {
+//     background-color: var(--hover-primary-color);
+//   }
+// }
+
+// Responsive adjustments if necessary
+@media (max-width: 768px) {
+  .articles-container {
+    grid-template-columns: 1fr; // Single column on smaller screens
+  }
+
+  .article-list-page .page-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+}

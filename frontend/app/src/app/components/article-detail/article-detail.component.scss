@@ -1,0 +1,196 @@
+.article-detail-page {
+  .loading-indicator,
+  .alert.error-message { // Ensure alerts have consistent styling
+    text-align: center;
+    padding: 2rem;
+    margin: 2rem auto; // Center it and give some space
+    max-width: 600px; // Limit width of messages
+  }
+
+  .alert.error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    border-radius: var(--border-radius, 4px);
+    a.button { // Style buttons within alerts appropriately
+        margin-top: 1rem;
+    }
+  }
+
+  .alert.info-message { // For "no content" messages
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+    border-radius: var(--border-radius, 4px);
+    padding: 1rem;
+    margin-top: 1rem;
+  }
+
+  .article-wrapper {
+    // Uses global .card styles for background, shadow, padding
+    max-width: 800px; // Content width
+    margin: 2rem auto; // Center the article card
+
+    .article-header {
+      padding-bottom: 1.5rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+
+      h1 {
+        font-size: 2.5rem; // Prominent title
+        color: var(--text-color);
+        margin-top: 0;
+        margin-bottom: 0.5rem;
+        line-height: 1.2;
+      }
+
+      .article-slug {
+        font-size: 0.9rem;
+        color: #777;
+        margin-bottom: 0.75rem;
+      }
+
+      .article-meta {
+        font-size: 0.85rem;
+        color: #555;
+        display: flex;
+        flex-wrap: wrap; // Allow meta items to wrap on small screens
+        gap: 0.5rem 1rem; // Spacing between meta items
+
+        span {
+          display: inline-block;
+        }
+      }
+    }
+
+    .article-content-section {
+      margin-bottom: 2rem;
+
+      .translation-content {
+        h2 {
+          font-size: 1.2rem;
+          color: var(--text-color);
+          margin-bottom: 1rem;
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .language-chip, .status-chip {
+          font-size: 0.8rem;
+          padding: 0.25rem 0.75rem;
+          border-radius: 12px; // Pill shape
+          font-weight: 600;
+          text-transform: uppercase;
+        }
+
+        .language-chip {
+          background-color: var(--primary-color);
+          color: white;
+        }
+
+        .status-chip.published {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        .status-chip.unpublished {
+            background-color: #777;
+            color: white;
+        }
+
+        .content-body {
+          line-height: 1.7; // Improved readability for long text
+          font-size: 1rem; // Standard body text size
+
+          // Add styling for HTML elements that might come from content
+          p { margin-bottom: 1em; }
+          h1, h2, h3, h4, h5, h6 { margin-top: 1.5em; margin-bottom: 0.5em; }
+          ul, ol { margin-bottom: 1em; padding-left: 1.5em; }
+          blockquote {
+            border-left: 4px solid var(--border-color);
+            padding-left: 1em;
+            margin-left: 0;
+            font-style: italic;
+            color: #555;
+          }
+          pre { // Style for code blocks
+            background-color: #f0f0f0;
+            padding: 1em;
+            border-radius: 4px;
+            overflow-x: auto; // Scroll for long code lines
+          }
+        }
+      }
+    }
+
+    .other-translations-section {
+      margin-bottom: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-color);
+
+      h3 {
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+        color: var(--text-color);
+      }
+
+      .translations-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+
+        li {
+          margin-bottom: 0.5rem;
+
+          &.active-translation .translation-link {
+            font-weight: bold;
+            color: var(--primary-color); // Highlight active translation
+          }
+
+          .translation-link {
+            text-decoration: none;
+            color: var(--primary-color); // Use theme color for links
+            transition: color 0.2s ease;
+
+            &:hover {
+              color: var(--hover-primary-color);
+              text-decoration: underline;
+            }
+
+            .current-view-indicator {
+              font-size: 0.8rem;
+              color: #777;
+              margin-left: 0.5rem;
+            }
+          }
+        }
+      }
+    }
+
+    .article-actions {
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 0.75rem; // Space between buttons
+
+      // Buttons will use global .button styles
+      // Specific button types (primary, secondary, danger) can be defined globally
+      // e.g. in styles.scss or overridden here if needed
+      .button.secondary-button {
+        background-color: var(--text-color); // Example for secondary
+        &:hover {
+            background-color: lighten(var(--text-color), 10%);
+        }
+      }
+      .button.primary-button { // Already defined globally
+      }
+      .button.danger-button {
+        background-color: #e74c3c; // Red for danger
+         &:hover {
+            background-color: darken(#e74c3c, 10%);
+        }
+      }
+    }
+  }
+}

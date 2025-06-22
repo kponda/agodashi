@@ -1,0 +1,191 @@
+// Uses global .card styles for the main container from styles.scss
+.form-page-container {
+  max-width: 850px; // Slightly wider for forms
+  margin: 2rem auto;
+  // Global .card styles apply padding, background, shadow
+
+  .form-header {
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    h2 {
+      margin: 0;
+      color: var(--text-color);
+      font-size: 1.8rem;
+    }
+  }
+
+  .article-form {
+    .form-section {
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border-color-light, #efefef); // Lighter border for sections
+
+      &:last-of-type {
+        border-bottom: none;
+        margin-bottom: 0;
+      }
+
+      h3 {
+        font-size: 1.3rem;
+        color: var(--primary-color);
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+      }
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600; // Bolder labels
+        color: var(--text-color);
+        font-size: 0.9rem;
+      }
+
+      // input[type="text"], input[type="number"], textarea are styled globally
+      // We can add overrides if needed
+
+      textarea {
+        min-height: 120px; // Taller text area
+        resize: vertical;
+      }
+
+      .validation-errors {
+        margin-top: 0.5rem;
+        small {
+          color: #e74c3c; // Error color
+          font-size: 0.85em;
+        }
+      }
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      margin-top: 1rem; // Add some space above checkbox
+
+      .styled-checkbox { // Custom styled checkbox (basic)
+        appearance: none;
+        -webkit-appearance: none;
+        height: 20px;
+        width: 20px;
+        background-color: #fff;
+        border: 1px solid var(--border-color);
+        border-radius: 3px;
+        cursor: pointer;
+        margin-right: 0.75rem;
+        position: relative;
+        outline: none;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+
+        &:checked {
+          background-color: var(--primary-color);
+          border-color: var(--primary-color);
+          &:after {
+            content: '\\2713'; // Checkmark
+            font-size: 14px;
+            color: white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+          }
+        }
+      }
+      .checkbox-label {
+        font-weight: normal; // Override bold label for checkbox text
+        font-size: 0.95rem;
+        cursor: pointer;
+      }
+    }
+
+    .translations-section {
+      .translation-group {
+        // Uses global .card for basic styling, but override for nested look
+        background-color: var(--background-color); // Slightly different background
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05); // Softer shadow
+
+        .translation-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.5rem;
+          padding-bottom: 1rem;
+          border-bottom: 1px solid var(--border-color);
+
+
+          h4 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--text-color);
+          }
+          // .button.danger-button.small-button is styled below
+        }
+      }
+
+      .add-translation-button {
+        margin-top: 1rem; // Space above the button
+        // Uses global .button and .secondary-button styles
+      }
+    }
+
+    .alert.error-message.global-error {
+      margin-top: 1.5rem;
+      margin-bottom: 1.5rem;
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      border-radius: var(--border-radius, 4px);
+      padding: 1rem;
+      p { margin: 0; }
+    }
+
+    .form-actions {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end; // Align buttons to the right
+      gap: 1rem; // Space between buttons
+
+      .button {
+        // Global .button styles apply
+        // Specific types like .primary-button, .cancel-button are defined globally
+      }
+      .cancel-button { // Example if not defined globally or needs override
+        background-color: var(--text-color);
+        color: white;
+        &:hover {
+            background-color: lighten(var(--text-color), 10%);
+        }
+      }
+    }
+  }
+}
+
+// Specific button variants if not global
+.button.primary-button { /* Assumed global */ }
+.button.secondary-button {
+  background-color: var(--secondary-color); // Or another distinct color
+  color: white;
+  &:hover {
+    background-color: var(--hover-secondary-color);
+  }
+}
+.button.danger-button {
+  background-color: #e74c3c;
+  color: white;
+  &:hover {
+    background-color: darken(#e74c3c, 10%);
+  }
+}
+.button.small-button { // For "Remove" button in translation
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+}

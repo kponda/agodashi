@@ -1,1 +1,124 @@
 /* You can add global styles to this file, and also import other style files */
+
+// Define a modern color palette
+:root {
+  --primary-color: #3498db; // A calm blue
+  --secondary-color: #2ecc71; // A vibrant green for accents
+  --background-color: #f4f6f8; // Light grey background
+  --text-color: #34495e; // Dark grey for text
+  --card-background-color: #ffffff; // White for cards/containers
+  --border-color: #e0e0e0; // Light grey for borders
+  --hover-primary-color: #2980b9;
+  --hover-secondary-color: #27ae60;
+  --font-family-sans-serif: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+  font-family: var(--font-family-sans-serif);
+  margin: 0;
+  padding: 0;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.6;
+  transition: background-color 0.3s ease, color 0.3s ease; // Smooth theme transitions
+}
+
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: var(--hover-primary-color);
+  text-decoration: underline;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-color);
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 600; // Slightly bolder headings
+}
+
+p {
+  margin-bottom: 1em;
+}
+
+// Basic button styling
+button, .button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  display: inline-block;
+  text-align: center;
+}
+
+button:hover, .button:hover {
+  background-color: var(--hover-primary-color);
+  transform: translateY(-2px); // Subtle lift effect
+}
+
+button:active, .button:active {
+  transform: translateY(0); // Reset lift on click
+}
+
+// Basic form input styling
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+textarea:focus {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+// Container styling
+.container {
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+// Card styling
+.card {
+  background-color: var(--card-background-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-5px); // Lift card on hover
+}
+
+// Utility classes
+.text-center {
+  text-align: center;
+}
+
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
